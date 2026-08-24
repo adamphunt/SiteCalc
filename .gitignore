@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE and editor files
+.qwen/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
