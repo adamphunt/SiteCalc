@@ -23,8 +23,11 @@ This tool creates balanced layouts for L-shaped bathroom floors with hexagonal t
 # Run with default settings
 python3 hex_floor.py
 
-# With custom seed for reproducible layouts
-python3 -c "import random; random.seed(42); import hex_floor; hex_floor.main()"
+# With a reproducible seed and custom image path
+python3 hex_floor.py --seed 42 --output layout.png
+
+# Validate and print a layout without requiring matplotlib
+python3 hex_floor.py --seed 42 --no-png
 ```
 
 ## Example Output
@@ -62,7 +65,7 @@ cd SiteCalc/hex_floor
 pip install matplotlib
 
 # Run
-python3 hex_floor.py
+python3 -m unittest -v test_hex_floor.py
 ```
 
 ## Tile Colors

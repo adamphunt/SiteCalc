@@ -33,6 +33,12 @@ class TestParseLength(unittest.TestCase):
     def test_whitespace(self):
         self.assertEqual(lumber_optimizer.parse_length("  12 1/4  "), 12.25)
 
+    def test_invalid_length_rejected(self):
+        with self.assertRaises(ValueError):
+            lumber_optimizer.parse_length("not-a-length")
+        with self.assertRaises(ValueError):
+            lumber_optimizer.parse_length("0")
+
 
 class TestLoadLengths(unittest.TestCase):
     """Test load_lengths function."""
@@ -118,7 +124,23 @@ class TestBestFitDecreasing(unittest.TestCase):
         scrap = []
         kerf = lumber_optimizer.inches_to_feet(0.125)
         orders, remaining, stats = lumber_optimizer.best_fit_decreasing(needed, scrap, kerf=kerf)
-        # Should account for kerf when calculating if pieces fit together
+        self.assertEqual(len(orders), 1)
+        self.assertAlmostEqual(stats['kerf_waste'], kerf)
+        self.assertEqual(stats['order_stock_lengths'], [20.0])
+
+    def test_uses_smallest_stock_that_fits(self):
+        orders, _, stats = lumber_optimizer.best_fit_decreasing([15.0, 19.0], [])
+        self.assertEqual(len(orders), 2)
+        self.assertEqual(stats['order_stock_lengths'], [20.0, 16.0])
+
+    def test_oversized_piece_is_rejected(self):
+        with self.assertRaises(ValueError):
+            lumber_optimizer.best_fit_decreasing([21.0], [])
+
+    def test_larger_stock_can_reduce_board_count(self):
+        orders, _, stats = lumber_optimizer.best_fit_decreasing([10.0, 10.0, 6.0, 6.0], [])
+        self.assertEqual(len(orders), 2)
+        self.assertEqual(stats['order_stock_lengths'], [20.0, 20.0])
 
 
 class TestInchesToFeet(unittest.TestCase):

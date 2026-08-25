@@ -24,9 +24,12 @@ class TestFloorCells(unittest.TestCase):
     def test_cells_in_order(self):
         """Test that cells are in reading order (row by row)."""
         cells = hex_floor.floor_cells()
-        for i, (r, c) in enumerate(cells):
-            expected_r = i // max(hex_floor.ROW_LENGTHS)
-            self.assertEqual(r, expected_r)
+        self.assertEqual(cells, sorted(cells))
+        for r, length in enumerate(hex_floor.ROW_LENGTHS):
+            self.assertEqual(
+                [cell for cell in cells if cell[0] == r],
+                [(r, c) for c in range(length)],
+            )
     
     def test_on_floor_validation(self):
         """Test on_floor function."""
@@ -36,7 +39,9 @@ class TestFloorCells(unittest.TestCase):
         
         # Invalid - beyond row length
         self.assertFalse(hex_floor.on_floor(0, 12))
-        self.assertFalse(hex_floor.on_floor(8, 0))  # Row 8+ doesn't exist
+        self.assertTrue(hex_floor.on_floor(8, 0))   # First short row
+        self.assertFalse(hex_floor.on_floor(8, 5))  # Beyond short row
+        self.assertFalse(hex_floor.on_floor(12, 0)) # Beyond final row
 
 
 class TestNeighbors(unittest.TestCase):
@@ -62,7 +67,7 @@ class TestNeighbors(unittest.TestCase):
                 self.assertTrue(hex_floor.on_floor(nr, nc))
 
 
-class Test weighted_pick(unittest.TestCase):
+class TestWeightedPick(unittest.TestCase):
     """Test weighted_pick function."""
     
     def test_pick_from_non_empty(self):
@@ -116,6 +121,17 @@ class TestSolve(unittest.TestCase):
         for r, c in hex_floor.floor_cells():
             for nr, nc in hex_floor.neighbors(r, c):
                 self.assertNotEqual(grid[r][c], grid[nr][nc])
+
+    def test_default_solution_is_complete(self):
+        grid, _ = hex_floor.solve()
+        self.assertTrue(hex_floor.validate(grid))
+
+    def test_final_recolor_is_valid(self):
+        while True:
+            grid, _ = hex_floor.solve()
+            if hex_floor.recolor_to_white(grid) is not None:
+                break
+        self.assertTrue(hex_floor.validate(grid, final=True))
 
 
 class TestWhiteBlobSize(unittest.TestCase):
