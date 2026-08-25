@@ -5,73 +5,153 @@
 ### Core Functionality
 
 1. **Calculate deck board layout**
-   - Given a deck length, determine optimal board arrangement
-   - Handle fractional lengths (e.g., 12.5 for 12'6")
+   - Given a deck width, determine optimal board arrangement
+   - Handle multiple board widths (3.5", 5.5", 7.25")
 
-2. **Support three board sizes**
-   - Small: 3' 7" (3.46 feet)
-   - Medium: 5' 7" (5.44 feet)
-   - Large: 7' 3" (7.19 feet)
+2. **Support multi-width patterns**
+   - N-S: Narrow-Standard alternating
+   - N-S-W: Three-board patterns
+   - W-S: Wide-Standard alternating
+   - And more...
 
-3. **Handle border adjustments**
-   - Support border width on each side
-   - Adjust available space accordingly
+3. **Calculate optimal spacing**
+   - Target spacing: 0.125" (prefer smaller)
+   - Acceptable range: 0.125" to 0.375"
+   - Optimize to be as close to 0.125" as possible
 
-4. **Calculate gap adjustment**
-   - When boards don't divide evenly, calculate uniform gap
-   - Account for board gaps (1/8" default)
+4. **Tablesaw trimming support**
+   - Calculate trim amounts when spacing is out of range
+   - Ensure trimmed widths remain visually acceptable (>= 2.5", within 1/8" of standard)
+
+### Picture Framing
+
+**Single Picture Frame:**
+- Single board border on each side
+- Board width can be any standard width (3.5", 5.5", or 7.25")
+
+**Double Picture Frame:**
+- Outer: Standard width board (5.5")
+- Inner: Narrow width board (3.5")
+- Pattern inside can start with any board type (N, S, or W)
+
+**Triple Picture Frame:**
+- Outer: Wide board (7.25")
+- Middle: Standard board (5.5")
+- Inner: Narrow board (3.5")
+- Pattern inside can start with any board type (N, S, or W)
+
+**Custom Picture Frames:**
+- Any combination of board widths
+- Format: "5.5-3.5" or "7.25-5.5-3.5"
+- Pattern inside can start with any board type (N, S, or W)
+
+**Pattern Inside Picture Frame:**
+- Pattern can start with any board type (N, S, or W)
+- Pattern repeats to fill the field
+- Optimize spacing to be as close to 0.125" as possible
+- Target spacing range: 0.125" to 0.375"
+
+### Visual Design Principles
+
+**Optimal Layout Characteristics:**
+- Consistent spacing across all gaps
+- Repetition of patterns creates rhythm
+- Balance (symmetrical or asymmetrical)
+- No boards < 2.5" (too thin, draws attention)
+- Trimmed boards within 1/8" of standard widths
+
+**Visual Red Flags (to avoid):**
+- Inconsistent spacing
+- Boards < 2.5" wide
+- Random placements without pattern
+- 4+ different widths in one row
 
 ### Input
 
 ```
 Arguments:
-  length       - Deck length in feet
-  start_size   - Starting board size index (0, 1, or 2)
-  border       - Border width in inches (default: 0)
+  width        - Deck width in inches
+  pattern      - Pattern name (optional)
+  spacing      - Target gap size (optional)
+
+For picture framing:
+  --picture-frame <width> [frame_type] [pattern]
+  frame_type: single, double, triple, or custom (e.g., 5.5-3.5)
 ```
 
 ### Output
 
 ```
-- Total deck length
-- Border width (each side)
-- Board counts by size
-- Total boards used
-- Final gap adjustment
-- Remaining space (should be < smallest board)
+- Pattern name
+- Board counts by type
+- Actual spacing achieved
+- Total waste
+- Quality score (0-100)
+- Trim requirements (if any)
+- Picture frame configuration (if applicable)
 ```
 
-## Implementation Details
+## Algorithm
 
-### Algorithm
+### Pattern Evaluation
 
-1. Calculate available space: `length - 2 * border - gap`
-2. Start with specified board size index
-3. Place boards in sequence (small → medium → large → repeat)
-4. For each board:
-   - Check if remaining space >= board size
-   - If yes, place board and reduce remaining space
-   - Subtract board size + gap from remaining
-5. When remaining < smallest board:
-   - Calculate final gap: `remaining / num_gaps`
-   - Return results
+1. **Calculate pattern width** for each pattern type
+2. **Determine number of full cycles** that fit in deck width
+3. **Handle partial pattern** at ends (if any)
+4. **Calculate actual spacing** based on remaining width
 
-### Edge Cases
+### Picture Frame Algorithm
 
-- **Very short decks** (< smallest board): Should handle gracefully
-- **Zero border**: Should work without adjustment
-- **Exact fit**: Remaining should be 0 or very small
-- **Large deck**: Should scale appropriately
+1. **Calculate frame width** from frame boards (each side)
+2. **Calculate field width** (total width - 2 × frame width)
+3. **Try different spacings** (0.125" to 0.375") to find best fit
+4. **Optimize for spacing** closest to 0.125"
+5. **Count boards** for full patterns and partial pattern at end
 
-### Test Cases
+### Tablesaw Trimming Logic
 
-| Input | Expected Behavior |
-|-------|-------------------|
-| 12.0 ft, no border | Should produce multiple boards with gap |
-| 3.0 ft, no border | Should handle short deck |
-| 20.0 ft, 2" border | Should adjust for border |
-| 15.0 ft, start=2 | Should start with large board |
-| 10.0 ft, start=0, border=1 | Should handle all parameters |
+When actual spacing exceeds max (0.375"):
+
+1. Calculate trim needed to achieve max spacing:
+   ```
+   trim_needed = total_gap_width - (num_gaps * max_spacing)
+   ```
+
+2. Calculate trim per board:
+   ```
+   trim_per_board = trim_needed / num_boards
+   ```
+
+3. Check if trimmed width is acceptable:
+   - Width >= 2.5" (minimum to avoid looking too thin)
+   - Within 1/8" of standard width (3.5", 5.5", or 7.25")
+
+4. If acceptable, apply trim; otherwise, mark as requiring attention
+
+### Scoring
+
+```
+Score = (waste_score * 0.4) + (spacing_score * 0.3) + (board_score * 0.3) - trim_penalty
+
+Where:
+- waste_score: 100 if waste = 0, decreases linearly
+- spacing_score: 100 if within range, 0 if very far
+- board_score: 100 for 5-15 boards, decreases for more/fewer
+- trim_penalty: 0 if no trim, up to -20 for significant trimming
+```
+
+## Test Cases
+
+| Test | Expected Behavior |
+|------|-------------------|
+| 120" deck, N-S pattern | Should find ~12 boards with proper spacing |
+| 96" deck with 1" borders | Should adjust for borders |
+| 150" deck, W-S-N pattern | Should scale appropriately |
+| Pattern requiring trim | Trim info included in results |
+| Picture frame, double (9" each side) | Should calculate field width and pattern layout |
+| Picture frame, single (5.5" each side) | Should work with single board frame |
+| Picture frame, triple (16.25" each side) | Should work with triple frame |
+| Picture frame, custom (7.25-5.5-3.5) | Should work with custom board combination |
 
 ## File Structure
 
@@ -80,5 +160,6 @@ deck_layout/
 ├── deck_layout.py      # Main implementation
 ├── test_deck_layout.py # Unit tests
 ├── README.md           # User documentation
-└── SPEC.md            # This specification
+├── SPEC.md            # This specification
+└── example_*.txt      # Example input files
 ```
