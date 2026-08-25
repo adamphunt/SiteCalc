@@ -70,12 +70,13 @@
 
 ```
 Arguments:
-  width        - Deck width in inches
-  pattern      - Pattern name (optional)
-  spacing      - Target gap size (optional)
+  --width      - Deck width in inches (required)
+  --pattern    - Pattern name (optional)
+  --spacing    - Target gap size (optional)
+  --border     - Reserved border width on each side (optional)
 
 For picture framing:
-  --picture-frame <width> [frame_type] [pattern]
+  --frame <frame_type>
   frame_type: single, double, triple, or custom (e.g., 5.5-3.5)
 ```
 

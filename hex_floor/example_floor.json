@@ -1,0 +1,26 @@
+{
+  "units": "inches",
+  "polygon": [
+    [0, 0],
+    [96, 0],
+    [96, 60],
+    [36, 60],
+    [36, 108],
+    [0, 108]
+  ],
+  "tile_width": 8,
+  "grout_width": 0.125,
+  "perimeter_joint": 0.25,
+  "doorways": [
+    {
+      "name": "hall doorway",
+      "start": [4, 108],
+      "end": [34, 108],
+      "priority": 2,
+      "alignment": "either"
+    }
+  ],
+  "concealed_areas": [
+    [[72, 0], [96, 0], [96, 24], [72, 24]]
+  ]
+}

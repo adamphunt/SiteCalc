@@ -10,6 +10,7 @@ Tests cover:
 """
 
 import unittest
+from unittest import mock
 import sys
 import os
 from io import StringIO
@@ -23,6 +24,7 @@ from deck_layout import (
     PATTERNS,
     calculate_layout,
     find_best_pattern,
+    main,
 )
 
 
@@ -193,6 +195,19 @@ class TestIntegration(unittest.TestCase):
         self.assertGreater(best['board_count'], 10)
         # Total width used should be close to deck width
         self.assertLessEqual(best['waste'], 10)  # Allow some waste for long decks
+
+    def test_named_cli_parameters(self):
+        output = StringIO()
+        with mock.patch('sys.stdout', output):
+            status = main(['--width', '120', '--pattern', 'N-S-W', '--spacing', '0.25', '--limit', '1'])
+        self.assertEqual(status, 0)
+        self.assertIn('N-S-W', output.getvalue())
+
+    def test_legacy_positional_cli_remains_supported(self):
+        output = StringIO()
+        with mock.patch('sys.stdout', output):
+            status = main(['120', 'N-S-W', '--limit', '1'])
+        self.assertEqual(status, 0)
 
 
 class TestBoardCounts(unittest.TestCase):

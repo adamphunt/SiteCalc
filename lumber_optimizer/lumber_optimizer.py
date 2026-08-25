@@ -38,8 +38,51 @@ def inches_to_feet(inches: float) -> float:
     return inches / 12.0
 
 
+def parse_measurement(value: str) -> float:
+    """Parse a measurement and return inches.
+
+    Unmarked values are inches. Explicit examples include ``10' 9 1/4\"``,
+    ``10'``, and ``9 1/4\"``. Unicode prime symbols are accepted as well.
+    """
+    normalized = value.strip().replace("′", "'").replace("’", "'").replace("″", '"')
+    if "'" in normalized:
+        if normalized.count("'") != 1:
+            raise ValueError(f"invalid feet-and-inches measurement: {value!r}")
+        feet_text, inches_text = (part.strip() for part in normalized.split("'", 1))
+        feet = parse_length(feet_text)
+        if inches_text.endswith('"'):
+            inches_text = inches_text[:-1].strip()
+        elif '"' in inches_text:
+            raise ValueError(f"invalid inch mark placement: {value!r}")
+        inches = parse_length(inches_text) if inches_text else 0.0
+        if inches >= 12:
+            raise ValueError("inches after a foot mark must be less than 12")
+        return feet * 12 + inches
+    if normalized.endswith('"'):
+        return parse_length(normalized[:-1].strip())
+    if '"' in normalized:
+        raise ValueError(f"invalid inch mark placement: {value!r}")
+    return parse_length(normalized)
+
+
+def parse_order_line(value: str) -> tuple[int, float]:
+    """Parse ``length`` or ``quantity@length`` and return quantity and length."""
+    if "@" not in value:
+        return 1, parse_measurement(value)
+    if value.count("@") != 1:
+        raise ValueError(f"invalid quantity expression: {value!r}")
+    quantity_text, length_text = (part.strip() for part in value.split("@", 1))
+    try:
+        quantity = int(quantity_text)
+    except ValueError as exc:
+        raise ValueError(f"quantity must be a whole number: {quantity_text!r}") from exc
+    if quantity <= 0:
+        raise ValueError("quantity must be positive")
+    return quantity, parse_measurement(length_text)
+
+
 def load_lengths(filepath: str, in_inches: bool = True) -> list[float]:
-    """Load one length per line, allowing whitespace and inline ``#`` comments."""
+    """Load lengths, supporting ``quantity@length`` and inline ``#`` comments."""
     lengths: list[float] = []
     path = Path(filepath)
     with path.open(encoding="utf-8") as source:
@@ -48,10 +91,11 @@ def load_lengths(filepath: str, in_inches: bool = True) -> list[float]:
             if not value:
                 continue
             try:
-                length = parse_length(value)
+                quantity, length = parse_order_line(value)
             except ValueError as exc:
                 raise ValueError(f"{path}:{line_number}: {exc}") from exc
-            lengths.append(inches_to_feet(length) if in_inches else length)
+            normalized = inches_to_feet(length) if in_inches else length
+            lengths.extend([normalized] * quantity)
     return lengths
 
 

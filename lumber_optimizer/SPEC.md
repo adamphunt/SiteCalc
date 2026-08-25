@@ -7,6 +7,8 @@
 1. **Load board lengths from files**
    - Support decimal inches (e.g., "12.5")
    - Support fractional inches (e.g., "12 1/4")
+   - Support quantities (e.g., "2@164 3/4")
+   - Support architectural notation (e.g., `10' 9 1/4"`)
    - Handle comments (lines starting with #)
    - Convert inches to feet internally
 
@@ -33,6 +35,8 @@ File format (inches):
   12.5      # decimal
   12 1/4    # fraction
   12 3/8    # mixed
+  2@164 3/4 # two pieces at 164 3/4 inches each
+  10' 9 1/4" # explicit feet and inches
 
 Command line:
   python3 lumber_optimizer.py <needed.txt> [scrap.txt] [kerf]

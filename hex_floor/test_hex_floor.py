@@ -4,6 +4,9 @@
 import unittest
 import sys
 import os
+import json
+import math
+import tempfile
 from io import StringIO
 
 # Add parent directory to path for imports
@@ -151,6 +154,99 @@ class TestWhiteBlobSize(unittest.TestCase):
         grid[0][1] = "white"
         size = hex_floor._white_blob_size(grid, 0, 0)
         self.assertEqual(size, 2)
+
+
+class TestPolygonFloor(unittest.TestCase):
+    def setUp(self):
+        self.outline = ((0, 0), (12, 0), (12, 10), (5, 10), (5, 16), (0, 16))
+
+    def test_grout_increases_center_pitch(self):
+        without_grout = hex_floor.PolygonFloor(self.outline, tile_width=2, grout_width=0)
+        with_grout = hex_floor.PolygonFloor(self.outline, tile_width=2, grout_width=0.25)
+        self.assertAlmostEqual(without_grout.center(0, 1)[0] - without_grout.center(0, 0)[0], 2)
+        self.assertAlmostEqual(with_grout.center(0, 1)[0] - with_grout.center(0, 0)[0], 2.25)
+
+    def test_flat_orientation_rotates_grid_pitch(self):
+        floor = hex_floor.PolygonFloor(self.outline, tile_width=2, grout_width=0.25, orientation="flat")
+        self.assertAlmostEqual(floor.center(1, 0)[1] - floor.center(0, 0)[1], 2.25)
+        self.assertAlmostEqual(
+            floor.center(0, 1)[0] - floor.center(0, 0)[0],
+            math.sqrt(3) / 2 * 2.25,
+        )
+
+    def test_concave_polygon_generates_intersecting_cells(self):
+        floor = hex_floor.PolygonFloor(self.outline, tile_width=2, grout_width=0.125)
+        cells = floor.cells()
+        self.assertGreater(len(cells), 0)
+        self.assertEqual(len(cells), len(set(cells)))
+        for cell in cells:
+            self.assertTrue(hex_floor._polygons_intersect(floor.tile_polygon(*cell), floor.polygon))
+
+    def test_polygon_solver_is_balanced_and_valid(self):
+        floor = hex_floor.PolygonFloor(self.outline, tile_width=3, grout_width=0.125)
+        cells = floor.cells()
+        counts = hex_floor.balanced_counts(len(cells))
+        grid, attempts = hex_floor.solve_cells(cells, counts)
+        self.assertGreater(attempts, 0)
+        self.assertTrue(hex_floor.validate_cells(grid, cells, counts))
+
+    def test_loads_compact_json_and_cli_overrides(self):
+        document = {
+            "units": "inches",
+            "polygon": self.outline,
+            "tile_width": 2,
+            "grout_width": 0.125,
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as stream:
+            json.dump(document, stream)
+            path = stream.name
+        try:
+            floor = hex_floor.load_polygon_floor(path, tile_width=2.5, grout_width=0.25)
+        finally:
+            os.unlink(path)
+        self.assertEqual(floor.tile_width, 2.5)
+        self.assertEqual(floor.grout_width, 0.25)
+
+    def test_invalid_geometry_is_rejected(self):
+        with self.assertRaises(ValueError):
+            hex_floor.PolygonFloor(((0, 0), (1, 1), (2, 2)), tile_width=1)
+        with self.assertRaises(ValueError):
+            hex_floor.PolygonFloor(((0, 0), (2, 2), (0, 2), (2, 0)), tile_width=1)
+
+    def test_boundary_touch_alone_is_not_an_intersection(self):
+        left = ((0, 0), (1, 0), (1, 1), (0, 1))
+        right = ((1, 0), (2, 0), (2, 1), (1, 1))
+        self.assertFalse(hex_floor._polygons_intersect(left, right))
+
+    def test_optimizer_ranks_doorway_aware_alternatives(self):
+        floor = hex_floor.PolygonFloor(self.outline, tile_width=3, grout_width=0.125)
+        doorway = hex_floor.Doorway("entry", (0, 2), (0, 8), priority=2, alignment="tile")
+        spec = hex_floor.LayoutSpec(floor, (doorway,))
+        layouts = hex_floor.optimize_layout(spec, offset_steps=2, limit=2)
+        self.assertEqual(len(layouts), 2)
+        self.assertGreaterEqual(layouts[0]["score"], layouts[1]["score"])
+        self.assertEqual(layouts[0]["doorways"][0]["name"], "entry")
+        self.assertIn(layouts[0]["floor"].orientation, ("pointy", "flat"))
+
+    def test_loads_doorways_concealed_areas_and_perimeter_joint(self):
+        document = {
+            "polygon": self.outline,
+            "tile_width": 3,
+            "grout_width": 0.125,
+            "perimeter_joint": 0.25,
+            "doorways": [{"name": "entry", "start": [0, 2], "end": [0, 8]}],
+            "concealed_areas": [[[8, 0], [12, 0], [12, 3], [8, 3]]],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as stream:
+            json.dump(document, stream)
+            path = stream.name
+        try:
+            spec = hex_floor.load_layout_spec(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual(spec.floor.perimeter_joint, 0.25)
+        self.assertEqual(spec.doorways[0].name, "entry")
+        self.assertEqual(len(spec.concealed_areas), 1)
 
 
 if __name__ == '__main__':
