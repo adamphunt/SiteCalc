@@ -40,6 +40,22 @@ class TestParseLength(unittest.TestCase):
             lumber_optimizer.parse_length("0")
 
 
+class TestParseMeasurement(unittest.TestCase):
+    def test_feet_and_fractional_inches(self):
+        self.assertEqual(lumber_optimizer.parse_measurement("10' 9 1/4\""), 129.25)
+
+    def test_feet_only_and_inches_only(self):
+        self.assertEqual(lumber_optimizer.parse_measurement("10'"), 120)
+        self.assertEqual(lumber_optimizer.parse_measurement('9 1/4"'), 9.25)
+
+    def test_unicode_prime_marks(self):
+        self.assertEqual(lumber_optimizer.parse_measurement("10′ 9 1/4″"), 129.25)
+
+    def test_explicit_inches_must_be_less_than_twelve(self):
+        with self.assertRaisesRegex(ValueError, "less than 12"):
+            lumber_optimizer.parse_measurement("10' 12\"")
+
+
 class TestLoadLengths(unittest.TestCase):
     """Test load_lengths function."""
 
@@ -84,6 +100,39 @@ class TestLoadLengths(unittest.TestCase):
             lengths = lumber_optimizer.load_lengths(temp_path)
             self.assertEqual(len(lengths), 1)
             self.assertAlmostEqual(lengths[0], 1.0, places=5)
+        finally:
+            os.unlink(temp_path)
+
+    def test_quantity_at_mixed_fraction(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write("2@164 3/4\n")
+            f.write("3 @ 12 1/2  # repeated pieces\n")
+            temp_path = f.name
+        try:
+            lengths = lumber_optimizer.load_lengths(temp_path)
+        finally:
+            os.unlink(temp_path)
+        self.assertEqual(len(lengths), 5)
+        self.assertEqual(lengths[:2], [164.75 / 12] * 2)
+        self.assertEqual(lengths[2:], [12.5 / 12] * 3)
+
+    def test_quantity_at_feet_and_inches(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write("2@10' 9 1/4\"\n")
+            temp_path = f.name
+        try:
+            lengths = lumber_optimizer.load_lengths(temp_path)
+        finally:
+            os.unlink(temp_path)
+        self.assertEqual(lengths, [129.25 / 12] * 2)
+
+    def test_invalid_quantity_reports_line(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write("2.5@12\n")
+            temp_path = f.name
+        try:
+            with self.assertRaisesRegex(ValueError, r":1: quantity must be a whole number"):
+                lumber_optimizer.load_lengths(temp_path)
         finally:
             os.unlink(temp_path)
 

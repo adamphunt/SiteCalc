@@ -42,16 +42,16 @@ When spacing is out of the recommended range (0.25"-0.5"), the tool can trim boa
 
 ```bash
 # Find the best pattern for your deck width
-python3 deck_layout.py 120
+python3 deck_layout.py --width 120
 
 # Use a specific pattern with custom spacing
-python3 deck_layout.py 120 N-S-W --spacing 0.25
+python3 deck_layout.py --width 120 --pattern N-S-W --spacing 0.25
 
 # With a 1" reserved border on each side
-python3 deck_layout.py 120 --border 1
+python3 deck_layout.py --width 120 --border 1
 
 # With a double picture frame (5.5" + 3.5" on each side)
-python3 deck_layout.py 120 --frame double
+python3 deck_layout.py --width 120 --frame double
 ```
 
 ## Board Sizes

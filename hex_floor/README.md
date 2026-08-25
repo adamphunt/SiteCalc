@@ -2,6 +2,10 @@
 
 A Python tool for generating optimized hexagonal tile layouts with color balance and no adjacent same-color tiles.
 
+It supports both the original row-based bathroom footprint and real-world floor
+polygons measured in inches. Polygon layouts include partially cut perimeter tiles
+and use grout width when calculating hex center spacing.
+
 ## Overview
 
 This tool creates balanced layouts for L-shaped bathroom floors with hexagonal tiles. It ensures:
@@ -16,6 +20,10 @@ This tool creates balanced layouts for L-shaped bathroom floors with hexagonal t
 - **Balanced color distribution**: 41 white / 25 each of 3 other colors
 - **Avoids white clusters**: Prevents connected white areas of 3+ tiles
 - **PNG output**: Generates visual output with matplotlib
+- **Aesthetic optimization**: Ranks pointy/flat orientations and grid offsets
+- **Doorway-aware scoring**: Favors centered thresholds, balanced jamb cuts, and no slivers
+- **Visibility weighting**: De-emphasizes cuts hidden beneath cabinets and fixtures
+- **Cut report**: Exports retained-area estimates and approximate offcut reuse
 
 ## Usage
 
@@ -28,7 +36,73 @@ python3 hex_floor.py --seed 42 --output layout.png
 
 # Validate and print a layout without requiring matplotlib
 python3 hex_floor.py --seed 42 --no-png
+
+# Generate an L-shaped floor from measured coordinates
+python3 hex_floor.py --floor example_floor.json --seed 42 --output polygon_floor.png
+
+# Override tile and grout dimensions from the command line
+python3 hex_floor.py --floor example_floor.json --tile-width 8 --grout-width 0.1875
+
+# Compare more grid phases and write the detailed cut report
+python3 hex_floor.py --floor example_floor.json --offset-steps 8 --alternatives 5 \
+  --report layout_report.json
 ```
+
+## Polygon input
+
+JSON coordinates are the recommended input because they are readable, diffable,
+and use the same `[x, y]` structure as GeoJSON. Measure vertices around the finished
+floor boundary in order—clockwise or counterclockwise—without crossing edges:
+
+```json
+{
+  "units": "inches",
+  "polygon": [[0, 0], [96, 0], [96, 60], [36, 60], [36, 108], [0, 108]],
+  "tile_width": 8,
+  "grout_width": 0.125,
+  "perimeter_joint": 0.25,
+  "doorways": [
+    {
+      "name": "hall doorway",
+      "start": [4, 108],
+      "end": [34, 108],
+      "priority": 2,
+      "alignment": "either"
+    }
+  ],
+  "concealed_areas": [
+    [[72, 0], [96, 0], [96, 24], [72, 24]]
+  ]
+}
+```
+
+`tile_width` is the physical flat-to-flat hex width. `grout_width` is added to
+the grid pitch, so an 8-inch tile with 1/8-inch grout has an 8.125-inch pitch.
+Tiles that intersect the outline are counted, including perimeter tiles that must
+be cut. The PNG clips those tiles to the floor boundary.
+
+Doorway endpoints should follow the threshold segment along the polygon boundary.
+Set `alignment` to `tile`, `grout`, or `either`; higher numeric `priority` values
+give important entrances more influence. `concealed_areas` mark cabinets, vanities,
+or other places where edge cuts are not visually important. `perimeter_joint`
+reserves movement space between tile and the wall.
+
+By default, the optimizer compares pointy- and flat-top grids across six offsets
+per axis. It ranks layouts using visible cut count, severe slivers, doorway-center
+alignment, jamb symmetry, threshold piece width, and approximate material reuse.
+The first option is rendered. More offset steps improve resolution but increase
+runtime quadratically.
+
+The JSON report includes every perimeter tile's grid cell, center point, estimated
+retained percentage, and visibility. Offcut reuse is an area-based planning estimate,
+not a guaranteed cutting plan; irregular shapes and saw losses can reduce real reuse.
+
+See [ROADMAP.md](ROADMAP.md) for proposed geometry, editor, installation, inventory,
+and export improvements.
+
+The loader also accepts a GeoJSON `Polygon` or `Feature` with Polygon geometry.
+Only the exterior ring is currently used; holes are not yet supported. Coordinates
+are interpreted as inches, so projected longitude/latitude GeoJSON is not suitable.
 
 ## Example Output
 
@@ -88,13 +162,22 @@ The floor model is in `ROW_LENGTHS` and can be customized.
 
 ## API
 
-### `solve(allow_white_exit=True)`
+### `solve(allow_white_exit=False)`
 Runs the backtracking solver to find a valid tile layout.
 
 **Returns:** `(grid, attempts)` - the filled grid and number of attempts
 
 ### `save_png(grid, path="hex_floor.png")`
 Saves the layout as a PNG image with matplotlib.
+
+### `load_polygon_floor(path, tile_width=None, grout_width=None)`
+Loads compact JSON or a GeoJSON Polygon and returns grout-aware geometry.
+
+### `solve_cells(cells, counts=None)`
+Colors an arbitrary polygon-derived footprint with balanced color quantities.
+
+### `optimize_layout(spec, orientations=("pointy", "flat"), offset_steps=6, limit=3)`
+Ranks orientation and grid-phase alternatives using edge and doorway aesthetics.
 
 ### `render(grid)`
 Prints ASCII representation to stdout.

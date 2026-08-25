@@ -162,8 +162,10 @@ def _parse_frame(value: str) -> list[float]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("width", type=float, help="overall deck width in inches")
-    parser.add_argument("pattern", nargs="?", choices=PATTERNS, help="specific repeating pattern")
+    parser.add_argument("legacy_width", nargs="?", type=float, help=argparse.SUPPRESS)
+    parser.add_argument("legacy_pattern", nargs="?", choices=PATTERNS, help=argparse.SUPPRESS)
+    parser.add_argument("--width", type=float, help="overall deck width in inches")
+    parser.add_argument("--pattern", choices=PATTERNS, help="specific repeating pattern")
     parser.add_argument("--spacing", type=float, default=MIN_GAP, help="target gap in inches")
     parser.add_argument("--border", type=float, default=0.0, help="reserved border on each side")
     parser.add_argument("--frame", type=_parse_frame, help="picture frame preset or hyphenated widths")
@@ -174,19 +176,27 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.width is not None and args.legacy_width is not None:
+        parser.error("specify width once, preferably with --width")
+    if args.pattern is not None and args.legacy_pattern is not None:
+        parser.error("specify pattern once, preferably with --pattern")
+    width = args.width if args.width is not None else args.legacy_width
+    pattern_name = args.pattern if args.pattern is not None else args.legacy_pattern
+    if width is None:
+        parser.error("--width is required")
     frame_width = sum(args.frame or [])
-    field_width = args.width - 2 * frame_width
+    field_width = width - 2 * frame_width
     if field_width <= 0:
         parser.error("picture frame leaves no field width")
     try:
         results = (
-            [calculate_layout(field_width, PATTERNS[args.pattern], args.spacing, args.border)]
-            if args.pattern
+            [calculate_layout(field_width, PATTERNS[pattern_name], args.spacing, args.border)]
+            if pattern_name
             else find_best_pattern(field_width, args.spacing, args.border)
         )
     except ValueError as exc:
         parser.error(str(exc))
-    print(f"Deck: {args.width:g}\"; field: {field_width:g}\"")
+    print(f"Deck: {width:g}\"; field: {field_width:g}\"")
     if args.frame:
         print("Picture frame per side: " + " + ".join(f'{width:g}\"' for width in args.frame))
     for index, result in enumerate(results[: max(1, args.limit)], 1):

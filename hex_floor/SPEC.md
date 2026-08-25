@@ -24,6 +24,14 @@
    - PNG image with matplotlib
    - Final color counts
 
+5. **Polygon aesthetic optimization**
+   - Compare pointy- and flat-top orientations
+   - Search grout-aware X/Y grid phases
+   - Prefer centered doorway composition and balanced jamb cuts
+   - Penalize visible perimeter slivers more than concealed cuts
+   - Reserve a configurable perimeter movement joint
+   - Rank alternatives and export an estimated cut/material report
+
 ### Hex Grid Model
 
 **Odd-r offset coordinates:**
@@ -51,10 +59,21 @@
 
 ### Input
 
-No user input required. Configuration is in code:
+The legacy layout requires no input and uses code configuration:
 - `POOL`: Color definitions (count, glyph, matplotlib color)
 - `ROW_LENGTHS`: Floor footprint (tiles per row)
 - `SWAP`: Tiles to recolor to white per color
+
+Polygon layouts accept compact JSON or a GeoJSON Polygon. Coordinates, flat-to-flat
+tile width, and grout width are expressed in inches. A tile belongs to the material
+count when its physical hex intersects the floor polygon, including cut boundary
+tiles. Grout increases center pitch uniformly while leaving physical tile size
+unchanged.
+
+Optional doorway segments carry a priority and preferred center alignment (`tile`,
+`grout`, or `either`). Optional concealed polygons identify cabinetry and fixtures.
+The optimizer samples candidate offsets for both hex orientations and scores cut
+count, retained edge area, doorway symmetry, and threshold fragments.
 
 ### Output
 
@@ -62,6 +81,8 @@ No user input required. Configuration is in code:
 ASCII rendering (W=white, S=silver, D=ducados, A=aqua)
 Final color counts
 PNG image (optional)
+Ranked polygon layout alternatives
+JSON cut/material report (optional)
 ```
 
 ## Test Cases
@@ -72,6 +93,10 @@ PNG image (optional)
 | No adjacent same colors | Valid layout |
 | 41 white tiles | Pack-driven recolor successful |
 | No white blob ≥ 3 | Recoloring constraint satisfied |
+| Concave polygon | Only intersecting full/cut tiles included |
+| Nonzero grout | Center pitch increases by grout width |
+| Doorway metadata | Ranked layouts include alignment and jamb metrics |
+| Concealed boundary | Hidden cuts receive a lower aesthetic penalty |
 
 ## File Structure
 

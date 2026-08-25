@@ -38,7 +38,16 @@ python3 lumber_optimizer.py needed_lengths.txt --stock 8 10 12 --inches
 102    # 8.5 feet
 144    # 12 feet
 75     # 6.25 feet
+2@164 3/4  # two pieces, each 164 3/4 inches
+10' 9 1/4" # explicit feet and inches; equal to 129 1/4 inches
 ```
+
+Prefix a length with `quantity@` to request repeated identical pieces. Whitespace
+around `@` is optional. Quantities must be positive whole numbers.
+
+Values without unit marks are interpreted as inches. Architectural notation accepts
+feet-only (`10'`), inches-only (`9 1/4"`), combined feet and inches (`10' 9 1/4"`),
+and Unicode prime marks (`10′ 9 1/4″`).
 
 **scrap.txt** - Available scrap pieces (optional, in inches):
 ```
