@@ -24,6 +24,7 @@ Hex model: pointy-top hexagons in an "odd-r" offset grid (odd rows shoved right 
 half a hex), so every interior cell has up to six neighbors — clipped to the floor
 footprint, so short-row cells don't "touch" phantom tiles under the tub.
 """
+import argparse
 import random
 from collections import Counter
 
@@ -88,7 +89,7 @@ def only_white_left(remaining):
 # and RESTART rather than grind — far simpler and faster than smarter search ordering.
 STEP_CAP = 1000                              # ~median×2000; bail past this and restart
 
-def _attempt(allow_white_exit):
+def _attempt(allow_white_exit=False):
     """One backtracking attempt. Returns the filled grid, or None if it gave up
     (hit STEP_CAP or exhausted backtracking) — the caller restarts."""
     cols = max(ROW_LENGTHS)
@@ -103,9 +104,8 @@ def _attempt(allow_white_exit):
         if steps > STEP_CAP:
             return None                      # thrashing — give up, restart fresh
         r, c = order[i]
-        # Once only white is left, no same-color conflict can remain → done early.
-        if allow_white_exit and only_white_left(remaining):
-            return grid
+        # Returning early here used to produce partially filled grids. Keep the
+        # argument for API compatibility, but every successful result is complete.
 
         neigh = {grid[nr][nc] for nr, nc in neighbors(r, c)}
         color = weighted_pick(remaining, banned[i] | neigh)
@@ -127,14 +127,15 @@ def _attempt(allow_white_exit):
         i += 1
     return grid
 
-def solve(allow_white_exit=True):
-    """Solve via random-restart: retry fresh attempts until one converges."""
+def solve(allow_white_exit=False, max_attempts=10_000):
+    """Solve via random restart and always return a completely filled grid."""
     attempts = 0
-    while True:
+    while attempts < max_attempts:
         attempts += 1
         grid = _attempt(allow_white_exit)
         if grid is not None:
             return grid, attempts
+    raise RuntimeError(f"no layout found after {max_attempts} attempts")
 
 # ── Pack-driven recolor: swap some non-white tiles to white ───────────────────
 # White is sold in packs of 16, the others in packs of 25. Starting from a balanced
@@ -217,10 +218,41 @@ def save_png(grid, path="hex_floor.png"):
     ax.axis("off")
     fig.tight_layout()
     fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
     print(f"Saved {path}")
 
 # ── Main ────────────────────────────────────────────────────────────────────
-def main():
+def validate(grid, final=False):
+    """Raise ``ValueError`` if a grid violates footprint or color constraints."""
+    cells = floor_cells()
+    if any(grid[r][c] not in POOL for r, c in cells):
+        raise ValueError("grid has an empty or unknown tile")
+    for r, c in cells:
+        for nr, nc in neighbors(r, c):
+            if grid[r][c] == grid[nr][nc] and (not final or grid[r][c] != "white"):
+                raise ValueError(f"adjacent {grid[r][c]} tiles at {(r, c)} and {(nr, nc)}")
+    if final:
+        counts = Counter(grid[r][c] for r, c in cells)
+        expected = {"white": 41, "silver": 25, "ducados": 25, "aqua": 25}
+        if counts != expected:
+            raise ValueError(f"unexpected final counts: {dict(counts)}")
+        for r, c in cells:
+            if grid[r][c] == "white" and _white_blob_size(grid, r, c) >= 3:
+                raise ValueError("white component contains three or more tiles")
+    return True
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--seed", type=int, help="seed for a reproducible layout")
+    parser.add_argument("--output", default="hex_floor.png", help="PNG output path")
+    parser.add_argument("--no-png", action="store_true", help="skip PNG generation")
+    return parser
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    random.seed(args.seed)
     total = sum(cnt for cnt, _, _ in POOL.values())
     cells = len(floor_cells())
     if total != cells:
@@ -238,6 +270,7 @@ def main():
         swaps = recolor_to_white(grid)
         if swaps is not None:
             break
+    validate(grid, final=True)
     render(grid)                                 # show the final floor
     print(f"Solved in {attempts} attempt(s).")
 
@@ -245,8 +278,9 @@ def main():
     print(f"\nRecolored {len(swaps)} tiles to white "
           f"({', '.join(f'{k}×{v}' for k, v in SWAP.items())}).")
     print("Placed:", ", ".join(f"{c}={placed[c]}" for c in POOL))
-    save_png(grid)
+    if not args.no_png:
+        save_png(grid, args.output)
+    return 0
 
 if __name__ == "__main__":
-    random.seed()                               # nondeterministic layouts
-    main()
+    raise SystemExit(main())

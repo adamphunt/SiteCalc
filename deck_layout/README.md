@@ -45,10 +45,13 @@ When spacing is out of the recommended range (0.25"-0.5"), the tool can trim boa
 python3 deck_layout.py 120
 
 # Use a specific pattern with custom spacing
-python3 deck_layout.py 120 N-S-W 0.375
+python3 deck_layout.py 120 N-S-W --spacing 0.25
 
-# With border requirements
-# (Border support will be added in future versions)
+# With a 1" reserved border on each side
+python3 deck_layout.py 120 --border 1
+
+# With a double picture frame (5.5" + 3.5" on each side)
+python3 deck_layout.py 120 --frame double
 ```
 
 ## Board Sizes
@@ -110,7 +113,7 @@ cd SiteCalc/deck_layout
 chmod +x deck_layout.py
 
 # Run tests
-python3 test_deck_layout.py
+python3 -m unittest -v test_deck_layout.py
 ```
 
 ## Score Calculation

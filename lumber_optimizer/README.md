@@ -24,7 +24,10 @@ The Lumber Optimizer uses the Best Fit Decreasing (BFD) heuristic for bin packin
 python3 lumber_optimizer.py needed_lengths.txt
 
 # With scrap and custom kerf
-python3 lumber_optimizer.py needed_lengths.txt scrap.txt 0.125
+python3 lumber_optimizer.py needed_lengths.txt scrap.txt --kerf 1/8
+
+# Custom available stock lengths and inch-based output
+python3 lumber_optimizer.py needed_lengths.txt --stock 8 10 12 --inches
 ```
 
 ### Input Files
@@ -50,7 +53,9 @@ python3 lumber_optimizer.py needed_lengths.txt scrap.txt 0.125
 ```
 needed_lengths.txt  - File with needed board lengths (inches)
 scrap.txt           - File with scrap lengths (optional)
-kerf                - Saw blade width in inches (default: 0.125 = 1/8")
+--kerf              - Saw blade width in inches (default: 1/8)
+--stock             - Available stock lengths in feet (default: 16 20)
+--inches            - Display cut lengths in inches
 ```
 
 ## Example Output
@@ -98,7 +103,7 @@ cd SiteCalc/lumber_optimizer
 chmod +x lumber_optimizer.py
 
 # Run tests
-python3 test_lumber_optimizer.py
+python3 -m unittest -v test_lumber_optimizer.py
 ```
 
 ## Testing

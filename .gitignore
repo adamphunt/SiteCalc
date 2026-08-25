@@ -1,42 +1,6 @@
-# SiteCalc
-
-Home improvement calculators and layout tools.
-
-## Tools
-
-### deck_layout
-Deck board layout calculator with optimal spacing
-
-```
-cd deck_layout
-python3 deck_layout.py 12.5
-```
-
-### lumber_optimizer
-Minimizes new lumber purchases by using scrap first
-
-```
-cd lumber_optimizer
-python3 lumber_optimizer.py needed_lengths.txt scrap.txt
-```
-
-### hex_floor
-Hexagonal tile layout generator for bathroom floors
-
-```
-cd hex_floor
-python3 hex_floor.py
-```
-
-## Running Tests
-
-```bash
-# Test all tools
-cd deck_layout && python3 test_deck_layout.py
-cd ../lumber_optimizer && python3 test_lumber_optimizer.py
-cd ../hex_floor && python3 test_hex_floor.py
-```
-
-## License
-
-MIT License
+__pycache__/
+*.py[cod]
+*.png
+.coverage
+.pytest_cache/
+.venv/
