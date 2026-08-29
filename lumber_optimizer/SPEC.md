@@ -12,9 +12,10 @@
    - Handle comments (lines starting with #)
    - Convert inches to feet internally
 
-2. **Best Fit Decreasing bin packing**
+2. **Multi-start Best Fit bin packing**
    - Sort pieces in descending order
    - Find best container (scrap or new stock) for each piece
+   - Compare deterministic alternate piece orders to avoid poor greedy assignments
    - Minimize new stock purchases
 
 3. **Scrap-first optimization**
@@ -47,8 +48,9 @@ Command line:
 ```
 - Statistics (total needed, scrap used, new stock, waste)
 - Stock orders (pieces grouped by stock)
-- Remaining scrap (usable pieces)
+- Scrap cut plan and remaining scrap (usable pieces, grouped by length)
 - Recommended purchases (by stock length)
+- Optional standalone HTML visualization with proportional cut, kerf, and remainder segments
 ```
 
 ### Parameters

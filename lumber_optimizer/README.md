@@ -13,9 +13,12 @@ The Lumber Optimizer uses the Best Fit Decreasing (BFD) heuristic for bin packin
 ## Features
 
 - **Scrap-first optimization**: Uses scrap pieces before buying new stock
-- **Bin packing algorithm**: Best Fit Decreasing (BFD) heuristic
+- **Bin packing algorithm**: Repeatable multi-start Best Fit search that compares
+  alternate scrap assignments and keeps the plan requiring the least purchased lumber
 - **Kerf accounting**: Accounts for saw blade width when calculating cuts
 - **Flexible stock sizes**: Supports custom stock lengths (default: 16', 20')
+- **Actionable cut plans**: Reports which pieces to cut from each scrap and new board
+- **Compact inventory**: Groups duplicate leftovers instead of printing huge lists
 
 ## Usage
 
@@ -28,6 +31,9 @@ python3 lumber_optimizer.py needed_lengths.txt scrap.txt --kerf 1/8
 
 # Custom available stock lengths and inch-based output
 python3 lumber_optimizer.py needed_lengths.txt --stock 8 10 12 --inches
+
+# Create a standalone, printable cutting diagram
+python3 lumber_optimizer.py needed_lengths.txt scrap.txt --visualize cutting-plan.html
 ```
 
 ### Input Files
@@ -65,7 +71,11 @@ scrap.txt           - File with scrap lengths (optional)
 --kerf              - Saw blade width in inches (default: 1/8)
 --stock             - Available stock lengths in feet (default: 16 20)
 --inches            - Display cut lengths in inches
+--visualize FILE     - Write an HTML diagram of scrap and purchased-board cuts
 ```
+
+The HTML diagram uses proportional colored bars for required cuts, saw kerfs, and
+remaining material. It has no external dependencies and can be opened in any browser.
 
 ## Example Output
 

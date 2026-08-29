@@ -6,6 +6,7 @@ import tempfile
 import os
 from io import StringIO
 import sys
+from pathlib import Path
 
 # Import the module to test
 import lumber_optimizer
@@ -191,6 +192,14 @@ class TestBestFitDecreasing(unittest.TestCase):
         self.assertEqual(len(orders), 2)
         self.assertEqual(stats['order_stock_lengths'], [20.0, 20.0])
 
+    def test_deck_data_improves_on_single_pass_greedy_result(self):
+        data_dir = Path(__file__).parent
+        needed = lumber_optimizer.load_lengths(data_dir / "deck_order_3_5.txt")
+        scrap = lumber_optimizer.load_lengths(data_dir / "deck_scrap_3_5.txt")
+        _, _, stats = lumber_optimizer.best_fit_decreasing(needed, scrap)
+        self.assertEqual(stats["order_stock_lengths"], [16.0] * 4)
+        self.assertEqual(len(stats["scrap_cut_lists"]), 13)
+
 
 class TestInchesToFeet(unittest.TestCase):
     """Test inches_to_feet function."""
@@ -199,6 +208,22 @@ class TestInchesToFeet(unittest.TestCase):
         self.assertEqual(lumber_optimizer.inches_to_feet(12), 1.0)
         self.assertEqual(lumber_optimizer.inches_to_feet(24), 2.0)
         self.assertAlmostEqual(lumber_optimizer.inches_to_feet(6), 0.5)
+
+
+class TestVisualization(unittest.TestCase):
+    def test_writes_scrap_and_purchase_diagrams(self):
+        orders, _, stats = lumber_optimizer.best_fit_decreasing(
+            [10.0, 6.0, 4.0], [6.5]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "plan.html"
+            result = lumber_optimizer.write_visualization(output, orders, stats)
+            contents = output.read_text(encoding="utf-8")
+        self.assertEqual(result, output)
+        self.assertIn("Scrap 1", contents)
+        self.assertIn("Purchased board 1", contents)
+        self.assertIn("Saw kerf", contents)
+        self.assertIn("Remaining", contents)
 
 
 if __name__ == '__main__':
