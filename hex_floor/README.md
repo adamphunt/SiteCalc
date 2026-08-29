@@ -61,17 +61,23 @@ floor boundary in order—clockwise or counterclockwise—without crossing edges
   "tile_width": 8,
   "grout_width": 0.125,
   "perimeter_joint": 0.25,
+  "inventory": {"white": 50, "silver": 25, "ducados": 25, "aqua": 25},
   "doorways": [
     {
       "name": "hall doorway",
       "start": [4, 108],
       "end": [34, 108],
       "priority": 2,
-      "alignment": "either"
+      "alignment": "either",
+      "hinge": "end",
+      "swing": "inward"
     }
   ],
   "concealed_areas": [
     [[72, 0], [96, 0], [96, 24], [72, 24]]
+  ],
+  "excluded_areas": [
+    [[0, 60], [30, 60], [30, 108], [0, 108]]
   ]
 }
 ```
@@ -83,9 +89,21 @@ be cut. The PNG clips those tiles to the floor boundary.
 
 Doorway endpoints should follow the threshold segment along the polygon boundary.
 Set `alignment` to `tile`, `grout`, or `either`; higher numeric `priority` values
-give important entrances more influence. `concealed_areas` mark cabinets, vanities,
-or other places where edge cuts are not visually important. `perimeter_joint`
-reserves movement space between tile and the wall.
+give important entrances more influence. To draw a door leaf and swing arc, set
+`hinge` to `start` or `end` and `swing` to `inward` or `outward`; start/end refer to
+the two doorway coordinates. `concealed_areas` mark cabinets, vanities,
+or other places that are tiled underneath but where edge cuts are not visually
+important. `excluded_areas` mark permanent untiled footprints such as bathtubs or
+shower bases; intersecting perimeter tiles are cut to their edges. `perimeter_joint`
+reserves movement space along walls and excluded-area boundaries.
+
+An optional `inventory` object enables material-aware layout ranking and coloring.
+The solver estimates same-color offcut reuse, consumes the colored inventory first,
+assigns any unavoidable shortage to white, and reports packs to buy and projected
+leftovers. White is assumed to come in packs of 16; the three colors use packs of 25.
+Candidate colorings are compared across horizontal and vertical room bands to avoid
+color drift toward one end of the room. The strongest feasible adjacency rule is
+used: isolated whites first, then pairs, with larger groups only as a last resort.
 
 By default, the optimizer compares pointy- and flat-top grids across six offsets
 per axis. It ranks layouts using visible cut count, severe slivers, doorway-center

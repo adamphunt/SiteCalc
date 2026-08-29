@@ -1,0 +1,915 @@
+{
+  "outline_area_sq_in": 8479.75,
+  "excluded_area_sq_in": 1932.25,
+  "floor_area_sq_in": 6547.5,
+  "placed_pieces": {
+    "white": 36,
+    "ducados": 28,
+    "aqua": 28,
+    "silver": 28
+  },
+  "color_distribution": {
+    "spatial_balance_penalty": 16.267,
+    "same_color_adjacencies": 0,
+    "largest_white_component": 1
+  },
+  "estimated_source_tiles": {
+    "white": 31,
+    "silver": 25,
+    "ducados": 25,
+    "aqua": 25
+  },
+  "inventory": {
+    "white": 50,
+    "silver": 25,
+    "ducados": 25,
+    "aqua": 25
+  },
+  "shortfall": {
+    "white": 0,
+    "silver": 0,
+    "ducados": 0,
+    "aqua": 0
+  },
+  "purchase_packs": {
+    "white": 0,
+    "silver": 0,
+    "ducados": 0,
+    "aqua": 0
+  },
+  "projected_leftovers": {
+    "white": 19,
+    "silver": 0,
+    "ducados": 0,
+    "aqua": 0
+  },
+  "selected": {
+    "score": 57.05,
+    "cut_tiles": 44,
+    "visible_cut_tiles": 37,
+    "concealed_cut_tiles": 7,
+    "sliver_tiles": 6,
+    "estimated_offcut_tiles": 20.23,
+    "tile_purchase_estimate": 104,
+    "potential_reuse_savings": 16,
+    "cut_schedule": [
+      {
+        "cell": [
+          -6,
+          11
+        ],
+        "center": [
+          82.639,
+          0.0
+        ],
+        "retained_percent_estimate": 15,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -5,
+          9
+        ],
+        "center": [
+          67.808,
+          0.0
+        ],
+        "retained_percent_estimate": 31,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -5,
+          10
+        ],
+        "center": [
+          75.224,
+          4.281
+        ],
+        "retained_percent_estimate": 85,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -5,
+          11
+        ],
+        "center": [
+          82.639,
+          8.562
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -4,
+          7
+        ],
+        "center": [
+          52.978,
+          0.0
+        ],
+        "retained_percent_estimate": 31,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -4,
+          8
+        ],
+        "center": [
+          60.393,
+          4.281
+        ],
+        "retained_percent_estimate": 85,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -4,
+          11
+        ],
+        "center": [
+          82.639,
+          17.125
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -3,
+          5
+        ],
+        "center": [
+          38.147,
+          0.0
+        ],
+        "retained_percent_estimate": 31,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -3,
+          6
+        ],
+        "center": [
+          45.562,
+          4.281
+        ],
+        "retained_percent_estimate": 85,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -3,
+          11
+        ],
+        "center": [
+          82.639,
+          25.688
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -2,
+          4
+        ],
+        "center": [
+          30.732,
+          4.281
+        ],
+        "retained_percent_estimate": 46,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -2,
+          11
+        ],
+        "center": [
+          82.639,
+          34.25
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          -1,
+          4
+        ],
+        "center": [
+          30.732,
+          12.844
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          -1,
+          11
+        ],
+        "center": [
+          82.639,
+          42.812
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          0,
+          4
+        ],
+        "center": [
+          30.732,
+          21.406
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          0,
+          11
+        ],
+        "center": [
+          82.639,
+          51.375
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          1,
+          4
+        ],
+        "center": [
+          30.732,
+          29.969
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          1,
+          11
+        ],
+        "center": [
+          82.639,
+          59.938
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          2,
+          4
+        ],
+        "center": [
+          30.732,
+          38.531
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          2,
+          11
+        ],
+        "center": [
+          82.639,
+          68.5
+        ],
+        "retained_percent_estimate": 23,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          3,
+          4
+        ],
+        "center": [
+          30.732,
+          47.094
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          3,
+          10
+        ],
+        "center": [
+          75.224,
+          72.781
+        ],
+        "retained_percent_estimate": 92,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          3,
+          11
+        ],
+        "center": [
+          82.639,
+          77.062
+        ],
+        "retained_percent_estimate": 8,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          4,
+          4
+        ],
+        "center": [
+          30.732,
+          55.656
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          4,
+          10
+        ],
+        "center": [
+          75.224,
+          81.344
+        ],
+        "retained_percent_estimate": 92,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          4,
+          11
+        ],
+        "center": [
+          82.639,
+          85.625
+        ],
+        "retained_percent_estimate": 8,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          5,
+          4
+        ],
+        "center": [
+          30.732,
+          64.219
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          5,
+          10
+        ],
+        "center": [
+          75.224,
+          89.906
+        ],
+        "retained_percent_estimate": 92,
+        "visibility": "concealed"
+      },
+      {
+        "cell": [
+          5,
+          11
+        ],
+        "center": [
+          82.639,
+          94.188
+        ],
+        "retained_percent_estimate": 8,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          6,
+          2
+        ],
+        "center": [
+          15.901,
+          64.219
+        ],
+        "retained_percent_estimate": 31,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          6,
+          3
+        ],
+        "center": [
+          23.316,
+          68.5
+        ],
+        "retained_percent_estimate": 85,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          6,
+          10
+        ],
+        "center": [
+          75.224,
+          98.469
+        ],
+        "retained_percent_estimate": 92,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          6,
+          11
+        ],
+        "center": [
+          82.639,
+          102.75
+        ],
+        "retained_percent_estimate": 8,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          7,
+          0
+        ],
+        "center": [
+          1.07,
+          64.219
+        ],
+        "retained_percent_estimate": 15,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          7,
+          1
+        ],
+        "center": [
+          8.486,
+          68.5
+        ],
+        "retained_percent_estimate": 85,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          7,
+          9
+        ],
+        "center": [
+          67.808,
+          102.75
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          8,
+          0
+        ],
+        "center": [
+          1.07,
+          72.781
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          8,
+          7
+        ],
+        "center": [
+          52.978,
+          102.75
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          9,
+          0
+        ],
+        "center": [
+          1.07,
+          81.344
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          9,
+          5
+        ],
+        "center": [
+          38.147,
+          102.75
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          10,
+          0
+        ],
+        "center": [
+          1.07,
+          89.906
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          10,
+          3
+        ],
+        "center": [
+          23.316,
+          102.75
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          11,
+          0
+        ],
+        "center": [
+          1.07,
+          98.469
+        ],
+        "retained_percent_estimate": 54,
+        "visibility": "visible"
+      },
+      {
+        "cell": [
+          11,
+          1
+        ],
+        "center": [
+          8.486,
+          102.75
+        ],
+        "retained_percent_estimate": 69,
+        "visibility": "visible"
+      }
+    ],
+    "doorways": [
+      {
+        "name": "hall doorway",
+        "alignment": 1.0,
+        "jamb_balance": 1.0,
+        "threshold_pieces": 2,
+        "smallest_threshold_piece": 9.866666666666667,
+        "center": "grout",
+        "priority": 2.0,
+        "door": {
+          "hinge": [
+            76.25,
+            0.0
+          ],
+          "open_end": [
+            76.25,
+            32.0
+          ],
+          "width": 32.0,
+          "swing": "inward"
+        }
+      }
+    ]
+  },
+  "alternatives": [
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        4.28125
+      ],
+      "score": 57.05,
+      "cut_tiles": 44,
+      "visible_cut_tiles": 37,
+      "concealed_cut_tiles": 7,
+      "sliver_tiles": 6,
+      "estimated_offcut_tiles": 20.23,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 16,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 1.0,
+          "jamb_balance": 1.0,
+          "threshold_pieces": 2,
+          "smallest_threshold_piece": 9.866666666666667,
+          "center": "grout",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        0.0
+      ],
+      "score": 55.3,
+      "cut_tiles": 44,
+      "visible_cut_tiles": 38,
+      "concealed_cut_tiles": 6,
+      "sliver_tiles": 5,
+      "estimated_offcut_tiles": 20.23,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 16,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9372549019607843,
+          "threshold_pieces": 3,
+          "smallest_threshold_piece": 5.866666666666667,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        5.3515625
+      ],
+      "score": 53.9,
+      "cut_tiles": 48,
+      "visible_cut_tiles": 42,
+      "concealed_cut_tiles": 6,
+      "sliver_tiles": 9,
+      "estimated_offcut_tiles": 23.62,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 19,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9372549019607843,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 4.0,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        6.421875
+      ],
+      "score": 53.9,
+      "cut_tiles": 48,
+      "visible_cut_tiles": 42,
+      "concealed_cut_tiles": 6,
+      "sliver_tiles": 15,
+      "estimated_offcut_tiles": 25.08,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 21,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9372549019607845,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 4.533333333333335,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        3.2109375
+      ],
+      "score": 53.55,
+      "cut_tiles": 50,
+      "visible_cut_tiles": 43,
+      "concealed_cut_tiles": 7,
+      "sliver_tiles": 13,
+      "estimated_offcut_tiles": 25.85,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 22,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9372549019607843,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 4.0,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        2.140625
+      ],
+      "score": 53.2,
+      "cut_tiles": 50,
+      "visible_cut_tiles": 44,
+      "concealed_cut_tiles": 6,
+      "sliver_tiles": 16,
+      "estimated_offcut_tiles": 26.15,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 22,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9372549019607845,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 4.533333333333335,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        7.4921875
+      ],
+      "score": 53.04,
+      "cut_tiles": 48,
+      "visible_cut_tiles": 43,
+      "concealed_cut_tiles": 5,
+      "sliver_tiles": 12,
+      "estimated_offcut_tiles": 24.85,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 21,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9058823529411765,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 5.066666666666666,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    },
+    {
+      "orientation": "flat",
+      "offset": [
+        1.0703125,
+        1.0703125
+      ],
+      "score": 52.69,
+      "cut_tiles": 50,
+      "visible_cut_tiles": 44,
+      "concealed_cut_tiles": 6,
+      "sliver_tiles": 9,
+      "estimated_offcut_tiles": 24.62,
+      "tile_purchase_estimate": 104,
+      "potential_reuse_savings": 20,
+      "doorways": [
+        {
+          "name": "hall doorway",
+          "alignment": 0.9833333333333334,
+          "jamb_balance": 0.9058823529411765,
+          "threshold_pieces": 5,
+          "smallest_threshold_piece": 5.066666666666666,
+          "center": "tile",
+          "priority": 2.0,
+          "door": {
+            "hinge": [
+              76.25,
+              0.0
+            ],
+            "open_end": [
+              76.25,
+              32.0
+            ],
+            "width": 32.0,
+            "swing": "inward"
+          }
+        }
+      ]
+    }
+  ]
+}

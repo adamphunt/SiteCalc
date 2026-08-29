@@ -28,9 +28,19 @@
    - Compare pointy- and flat-top orientations
    - Search grout-aware X/Y grid phases
    - Prefer centered doorway composition and balanced jamb cuts
+   - Model optional start/end hinges and inward/outward door swing arcs
    - Penalize visible perimeter slivers more than concealed cuts
+   - Exclude bathtub and shower-base footprints while retaining their boundary cuts
    - Reserve a configurable perimeter movement joint
    - Rank alternatives and export an estimated cut/material report
+
+6. **Inventory-aware material planning**
+   - Accept per-color source-tile inventory from polygon JSON
+   - Estimate reusable offcuts separately for each color
+   - Consume all three colored inventories before assigning shortage to white
+   - Report pack purchases and projected leftovers
+   - Penalize color-density drift across horizontal and vertical floor regions
+   - Prefer isolated white tiles, relaxing to pairs or clusters only when required
 
 ### Hex Grid Model
 

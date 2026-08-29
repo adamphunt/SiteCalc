@@ -44,6 +44,8 @@ POOL = {
 GLYPH = {c: g for c, (_, g, _) in POOL.items()}
 FILL  = {c: f for c, (_, _, f) in POOL.items()}
 EMPTY = "."
+PACK_SIZES = {"white": 16, "silver": 25, "ducados": 25, "aqua": 25}
+DOOR_COLOR = "#173f5f"
 
 # ── Floor footprint ───────────────────────────────────────────────────────────
 # The tiled cells are the LEFT ROW_LENGTHS[r] columns of each row; the rest is the
@@ -140,6 +142,8 @@ class Doorway:
     end: tuple[float, float]
     priority: float = 1.0
     alignment: str = "either"
+    hinge: str = "none"
+    swing: str = "none"
 
     def __post_init__(self):
         if self.start == self.end:
@@ -148,6 +152,12 @@ class Doorway:
             raise ValueError("doorway priority must be positive")
         if self.alignment not in ("tile", "grout", "either"):
             raise ValueError("doorway alignment must be tile, grout, or either")
+        if self.hinge not in ("none", "start", "end"):
+            raise ValueError("doorway hinge must be none, start, or end")
+        if self.swing not in ("none", "inward", "outward"):
+            raise ValueError("doorway swing must be none, inward, or outward")
+        if (self.hinge == "none") != (self.swing == "none"):
+            raise ValueError("doorway hinge and swing must be configured together")
 
 
 @dataclass(frozen=True)
@@ -155,6 +165,8 @@ class LayoutSpec:
     floor: PolygonFloor
     doorways: tuple[Doorway, ...] = ()
     concealed_areas: tuple[tuple[tuple[float, float], ...], ...] = ()
+    inventory: dict[str, int] | None = None
+    excluded_areas: tuple[tuple[tuple[float, float], ...], ...] = ()
 
 
 def _signed_area(polygon):
@@ -272,6 +284,8 @@ def load_layout_spec(path, tile_width=None, grout_width=None):
             tuple(map(float, item["end"])),
             float(item.get("priority", 1)),
             item.get("alignment", "either"),
+            item.get("hinge", "none"),
+            item.get("swing", "none"),
         )
         for index, item in enumerate(document.get("doorways", []))
     )
@@ -279,7 +293,16 @@ def load_layout_spec(path, tile_width=None, grout_width=None):
         tuple((float(x), float(y)) for x, y in polygon)
         for polygon in document.get("concealed_areas", [])
     )
-    return LayoutSpec(floor, doorways, concealed)
+    excluded = tuple(
+        tuple((float(x), float(y)) for x, y in polygon)
+        for polygon in document.get("excluded_areas", [])
+    )
+    inventory = document.get("inventory")
+    if inventory is not None:
+        inventory = {str(color): int(count) for color, count in inventory.items()}
+        if set(inventory) != set(POOL) or any(count < 0 for count in inventory.values()):
+            raise ValueError("inventory must contain non-negative counts for every color")
+    return LayoutSpec(floor, doorways, concealed, inventory, excluded)
 
 def floor_cells():
     """Every (row, col) that gets a tile, in reading order."""
@@ -317,7 +340,21 @@ def balanced_counts(cell_count, colors=None):
     return {color: quotient + (index < remainder) for index, color in enumerate(colors)}
 
 
-def solve_cells(cells, counts=None, max_attempts=10_000):
+def _cell_color_component_size(grid, start, color, cells):
+    seen, stack = {start}, [start]
+    while stack:
+        cell = stack.pop()
+        for neighbor in cell_neighbors(cell, cells):
+            if neighbor not in seen and grid.get(neighbor) == color:
+                seen.add(neighbor)
+                stack.append(neighbor)
+    return len(seen)
+
+
+def solve_cells(
+    cells, counts=None, max_attempts=10_000,
+    allow_white_pairs=False, allow_white_clusters=False,
+):
     """Color an arbitrary hex footprint with exact quotas and no equal neighbors."""
     order = sorted(set(cells), key=lambda cell: (cell[0], cell[1]))
     if not order:
@@ -338,7 +375,15 @@ def solve_cells(cells, counts=None, max_attempts=10_000):
             steps += 1
             cell = order[index]
             touching = {grid[neighbor] for neighbor in cell_neighbors(cell, cell_set) if neighbor in grid}
-            color = weighted_pick(remaining, banned[index] | touching)
+            forbidden = banned[index] | touching
+            if allow_white_pairs or allow_white_clusters:
+                forbidden.discard("white")
+                if not allow_white_clusters:
+                    grid[cell] = "white"
+                    if _cell_color_component_size(grid, cell, "white", cell_set) > 2:
+                        forbidden.add("white")
+                    del grid[cell]
+            color = weighted_pick(remaining, forbidden)
             if color is None:
                 banned[index].clear()
                 index -= 1
@@ -357,18 +402,173 @@ def solve_cells(cells, counts=None, max_attempts=10_000):
     raise RuntimeError(f"no polygon layout found after {max_attempts} attempts")
 
 
-def validate_cells(grid, cells, counts=None):
+def validate_cells(
+    grid, cells, counts=None, allow_white_pairs=False, allow_white_clusters=False
+):
     cell_set = set(cells)
     if set(grid) != cell_set:
         raise ValueError("grid does not exactly cover the polygon cells")
     if any(color not in POOL for color in grid.values()):
         raise ValueError("grid contains an unknown color")
     for cell, color in grid.items():
-        if any(grid[neighbor] == color for neighbor in cell_neighbors(cell, cell_set)):
+        if color == "white" and allow_white_clusters:
+            pass
+        elif color == "white" and allow_white_pairs:
+            if _cell_color_component_size(grid, cell, color, cell_set) > 2:
+                raise ValueError("white component contains three or more tiles")
+        elif any(grid[neighbor] == color for neighbor in cell_neighbors(cell, cell_set)):
             raise ValueError(f"adjacent {color} tiles at {cell}")
     if counts is not None and dict(Counter(grid.values())) != dict(counts):
         raise ValueError("grid does not match requested color counts")
     return True
+
+
+def material_usage_by_color(grid, floor, costs=None, excluded_areas=()):
+    """Estimate source tiles per color after matching reusable same-color offcuts."""
+    if costs is None:
+        costs = {}
+        for cell in grid:
+            coverage = _tile_coverage(floor, cell, excluded_areas)
+            costs[cell] = 1.0 if coverage >= 0.999 else min(1.0, coverage * 1.15)
+    material = Counter()
+    for cell, color in grid.items():
+        material[color] += costs[cell]
+    return {color: math.ceil(material[color] - 1e-9) for color in POOL}
+
+
+def inventory_purchase_plan(usage, inventory, pack_sizes=PACK_SIZES):
+    """Return shortages, packs to buy, and final leftovers by color."""
+    shortage = {
+        color: max(0, usage[color] - inventory[color]) for color in POOL
+    }
+    packs = {
+        color: math.ceil(shortage[color] / pack_sizes[color]) for color in POOL
+    }
+    leftovers = {
+        color: inventory[color] + packs[color] * pack_sizes[color] - usage[color]
+        for color in POOL
+    }
+    return shortage, packs, leftovers
+
+
+def spatial_color_penalty(grid, floor):
+    """Measure color-density drift across horizontal and vertical room thirds."""
+    centers = {cell: floor.center(*cell) for cell in grid}
+    xs = [point[0] for point in centers.values()]
+    ys = [point[1] for point in centers.values()]
+    totals = Counter(grid.values())
+    penalty = 0.0
+    for axis, values in ((0, xs), (1, ys)):
+        low, high = min(values), max(values)
+        span = high - low or 1.0
+        bands = [Counter(), Counter(), Counter()]
+        band_sizes = [0, 0, 0]
+        for cell, color in grid.items():
+            band = min(2, int((centers[cell][axis] - low) / span * 3))
+            bands[band][color] += 1
+            band_sizes[band] += 1
+        for band, size in zip(bands, band_sizes):
+            for color in POOL:
+                expected = totals[color] * size / len(grid)
+                penalty += abs(band[color] - expected)
+    return round(penalty, 3)
+
+
+def color_distribution_metrics(grid, floor):
+    cells = set(grid)
+    same_edges = sum(
+        grid[cell] == grid[neighbor]
+        for cell in cells
+        for neighbor in cell_neighbors(cell, cells)
+    ) // 2
+    white_components = []
+    unseen = {cell for cell, color in grid.items() if color == "white"}
+    while unseen:
+        start = unseen.pop()
+        component = {start}
+        stack = [start]
+        while stack:
+            for neighbor in cell_neighbors(stack.pop(), cells):
+                if neighbor in unseen and grid[neighbor] == "white":
+                    unseen.remove(neighbor)
+                    component.add(neighbor)
+                    stack.append(neighbor)
+        white_components.append(len(component))
+    return {
+        "spatial_balance_penalty": spatial_color_penalty(grid, floor),
+        "same_color_adjacencies": same_edges,
+        "largest_white_component": max(white_components, default=0),
+    }
+
+
+def solve_inventory_colors(
+    floor, cells, inventory, samples_per_count=8, excluded_areas=()
+):
+    """Find a coloring that consumes colored inventory and assigns shortage to white.
+
+    Piece quotas are explored because cut pieces can share source tiles. The material
+    score uses the same conservative 15% handling allowance as the layout estimate.
+    """
+    best = None
+    cell_count = len(cells)
+    costs = {}
+    for cell in cells:
+        coverage = _tile_coverage(floor, cell, excluded_areas)
+        costs[cell] = 1.0 if coverage >= 0.999 else min(1.0, coverage * 1.15)
+    estimated_total = sum(costs.values())
+    colored_inventory = max(inventory[color] for color in POOL if color != "white")
+    target_pieces = round(colored_inventory * cell_count / estimated_total)
+    first_count = max(colored_inventory, target_pieces - 1)
+    last_count = min(cell_count // 3, target_pieces + 1)
+    # Prefer the strongest graph-coloring rule that can also satisfy inventory.
+    for white_mode in ("separate", "pairs", "clusters"):
+        mode_best = None
+        for colored_piece_count in range(first_count, last_count + 1):
+            counts = {
+                "white": cell_count - 3 * colored_piece_count,
+                "silver": colored_piece_count,
+                "ducados": colored_piece_count,
+                "aqua": colored_piece_count,
+            }
+            if counts["white"] < 0:
+                continue
+            for _ in range(samples_per_count):
+                try:
+                    grid, attempts = solve_cells(
+                        cells,
+                        counts,
+                        max_attempts=50,
+                        allow_white_pairs=white_mode == "pairs",
+                        allow_white_clusters=white_mode == "clusters",
+                    )
+                except RuntimeError:
+                    continue
+                minimum_usage = material_usage_by_color(grid, floor, costs)
+                usage = dict(minimum_usage)
+                colored = ("silver", "ducados", "aqua")
+                # When efficient reuse would leave colored source tiles, spread
+                # cuts over that inventory while retaining maximum white reuse.
+                for color in colored:
+                    if minimum_usage[color] <= inventory[color] <= counts[color]:
+                        usage[color] = inventory[color]
+                colored_over = sum(max(0, usage[color] - inventory[color]) for color in colored)
+                colored_left = sum(max(0, inventory[color] - usage[color]) for color in colored)
+                white_short = max(0, usage["white"] - inventory["white"])
+                balance = spatial_color_penalty(grid, floor)
+                score = (
+                    colored_over, colored_left, white_short, balance,
+                    sum(usage.values()),
+                )
+                if mode_best is None or score < mode_best[0]:
+                    mode_best = (score, grid, attempts, counts, usage)
+        if mode_best is not None and (best is None or mode_best[0] < best[0]):
+            best = mode_best
+        if best is not None and best[0][:3] == (0, 0, 0):
+            break
+    if best is None:
+        raise RuntimeError("no inventory-aware color layout found")
+    _, grid, attempts, counts, usage = best
+    return grid, attempts, counts, usage
 
 
 def _distance(first, second):
@@ -384,23 +584,77 @@ def _point_segment_distance(point, start, end):
     return _distance(point, projection)
 
 
-def _inside_install_area(point, floor):
+def door_swing_geometry(floor, doorway):
+    """Return hinge, free endpoints, and an inward/outward quarter-circle arc."""
+    if doorway.hinge == "none":
+        return None
+    hinge = doorway.start if doorway.hinge == "start" else doorway.end
+    closed_end = doorway.end if doorway.hinge == "start" else doorway.start
+    dx, dy = closed_end[0] - hinge[0], closed_end[1] - hinge[1]
+    length = math.hypot(dx, dy)
+    normals = ((-dy / length, dx / length), (dy / length, -dx / length))
+    midpoint = (
+        (doorway.start[0] + doorway.end[0]) / 2,
+        (doorway.start[1] + doorway.end[1]) / 2,
+    )
+    inward = next(
+        (
+            normal for normal in normals
+            if _point_in_polygon(
+                (midpoint[0] + normal[0] * 0.5, midpoint[1] + normal[1] * 0.5),
+                floor.polygon,
+            )
+        ),
+        normals[0],
+    )
+    direction = inward if doorway.swing == "inward" else (-inward[0], -inward[1])
+    open_end = hinge[0] + direction[0] * length, hinge[1] + direction[1] * length
+    start_angle = math.atan2(dy, dx)
+    end_angle = math.atan2(direction[1], direction[0])
+    delta = (end_angle - start_angle + math.pi) % (2 * math.pi) - math.pi
+    arc = tuple(
+        (
+            hinge[0] + length * math.cos(start_angle + delta * index / 30),
+            hinge[1] + length * math.sin(start_angle + delta * index / 30),
+        )
+        for index in range(31)
+    )
+    return {
+        "hinge": hinge,
+        "closed_end": closed_end,
+        "open_end": open_end,
+        "arc": arc,
+        "width": length,
+        "swing": doorway.swing,
+    }
+
+
+def _inside_install_area(point, floor, excluded_areas=()):
     if not _point_in_polygon(point, floor.polygon):
         return False
-    if floor.perimeter_joint == 0:
-        return True
-    edges = zip(floor.polygon, floor.polygon[1:] + floor.polygon[:1])
-    return min(_point_segment_distance(point, start, end) for start, end in edges) >= floor.perimeter_joint
+    if any(_point_in_polygon(point, area) for area in excluded_areas):
+        return False
+    if floor.perimeter_joint:
+        boundaries = (floor.polygon,) + tuple(excluded_areas)
+        for boundary in boundaries:
+            edges = zip(boundary, boundary[1:] + boundary[:1])
+            if min(
+                _point_segment_distance(point, start, end) for start, end in edges
+            ) < floor.perimeter_joint:
+                return False
+    return True
 
 
-def _tile_coverage(floor, cell):
+def _tile_coverage(floor, cell, excluded_areas=()):
     """Estimate the fraction of a tile lying inside the floor for cut scoring."""
     center = floor.center(*cell)
     vertices = floor.tile_polygon(*cell)
     samples = [center]
     samples.extend(vertices)
     samples.extend(((center[0] + x) / 2, (center[1] + y) / 2) for x, y in vertices)
-    return sum(_inside_install_area(point, floor) for point in samples) / len(samples)
+    return sum(
+        _inside_install_area(point, floor, excluded_areas) for point in samples
+    ) / len(samples)
 
 
 def _doorway_metrics(floor, doorway, cells):
@@ -441,7 +695,7 @@ def _doorway_metrics(floor, doorway, cells):
         alignment = 1.0 if center_in_grout else 0.0
     else:
         alignment = max(centered_tile, 1.0 if center_in_grout else 0.0)
-    return {
+    result = {
         "name": doorway.name,
         "alignment": alignment,
         "jamb_balance": jamb_balance,
@@ -450,12 +704,26 @@ def _doorway_metrics(floor, doorway, cells):
         "center": "grout" if center_in_grout else "tile",
         "priority": doorway.priority,
     }
+    swing = door_swing_geometry(floor, doorway)
+    if swing:
+        result["door"] = {
+            "hinge": [round(value, 3) for value in swing["hinge"]],
+            "open_end": [round(value, 3) for value in swing["open_end"]],
+            "width": round(swing["width"], 3),
+            "swing": swing["swing"],
+        }
+    return result
 
 
-def evaluate_layout(floor, doorways=(), concealed_areas=()):
+def evaluate_layout(floor, doorways=(), concealed_areas=(), excluded_areas=()):
     """Score one grid phase/orientation, emphasizing visible edges and doorways."""
-    cells = floor.cells()
-    cut_coverages = {cell: _tile_coverage(floor, cell) for cell in cells}
+    cut_coverages = {
+        cell: _tile_coverage(floor, cell, excluded_areas) for cell in floor.cells()
+    }
+    cut_coverages = {
+        cell: coverage for cell, coverage in cut_coverages.items() if coverage > 0
+    }
+    cells = sorted(cut_coverages)
     cut_cells = [cell for cell, coverage in cut_coverages.items() if coverage < 0.999]
     concealed = {
         cell for cell in cut_cells
@@ -515,14 +783,28 @@ def optimize_layout(spec, orientations=("pointy", "flat"), offset_steps=6, limit
                     offset_x=spec.floor.pitch * x_index / offset_steps,
                     offset_y=spec.floor.pitch * y_index / offset_steps,
                 )
-                candidates.append(evaluate_layout(floor, spec.doorways, spec.concealed_areas))
-    candidates.sort(
-        key=lambda item: (
-            item["score"], -item["sliver_tiles"], -item["visible_cut_tiles"],
-            -item["estimated_offcut_tiles"],
-        ),
-        reverse=True,
-    )
+                candidates.append(
+                    evaluate_layout(
+                        floor, spec.doorways, spec.concealed_areas, spec.excluded_areas
+                    )
+                )
+    if spec.inventory:
+        candidates.sort(
+            key=lambda item: (
+                item["tile_purchase_estimate"],
+                -item["score"],
+                item["sliver_tiles"],
+                item["visible_cut_tiles"],
+            )
+        )
+    else:
+        candidates.sort(
+            key=lambda item: (
+                item["score"], -item["sliver_tiles"], -item["visible_cut_tiles"],
+                -item["estimated_offcut_tiles"],
+            ),
+            reverse=True,
+        )
     return candidates[: max(1, limit)]
 
 # ── ASCII render ──────────────────────────────────────────────────────────────
@@ -682,7 +964,10 @@ def save_png(grid, path="hex_floor.png"):
     print(f"Saved {path}")
 
 
-def save_polygon_png(grid, floor, path="hex_floor.png", doorways=(), concealed_areas=()):
+def save_polygon_png(
+    grid, floor, path="hex_floor.png", doorways=(), concealed_areas=(),
+    excluded_areas=(),
+):
     """Render polygon tiles at real proportions and clip cuts to the boundary."""
     import matplotlib.pyplot as plt
     from matplotlib.patches import PathPatch, Polygon
@@ -701,6 +986,13 @@ def save_polygon_png(grid, floor, path="hex_floor.png", doorways=(), concealed_a
         )
         tile.set_clip_path(clip_patch)
         ax.add_patch(tile)
+    for area in excluded_areas:
+        ax.add_patch(
+            Polygon(
+                area, closed=True, facecolor="white", edgecolor="#111111",
+                linewidth=2, zorder=4,
+            )
+        )
     outline = Polygon(floor.polygon, closed=True, fill=False, edgecolor="#111111", linewidth=2)
     ax.add_patch(outline)
     for area in concealed_areas:
@@ -709,12 +1001,12 @@ def save_polygon_png(grid, floor, path="hex_floor.png", doorways=(), concealed_a
         ax.plot(
             (doorway.start[0], doorway.end[0]),
             (doorway.start[1], doorway.end[1]),
-            color="#d1495b",
+            color=DOOR_COLOR,
             linewidth=4,
             solid_capstyle="round",
         )
         midpoint = ((doorway.start[0] + doorway.end[0]) / 2, (doorway.start[1] + doorway.end[1]) / 2)
-        ax.annotate(doorway.name, midpoint, color="#9b1c31", fontsize=8, xytext=(3, 3), textcoords="offset points")
+        ax.annotate(doorway.name, midpoint, color=DOOR_COLOR, fontsize=8, xytext=(3, 3), textcoords="offset points")
     xs, ys = zip(*floor.polygon)
     margin = floor.tile_width
     ax.set_xlim(min(xs) - margin, max(xs) + margin)
@@ -735,11 +1027,27 @@ def save_polygon_png(grid, floor, path="hex_floor.png", doorways=(), concealed_a
             ax.plot(
                 (doorway.start[0], doorway.end[0]),
                 (doorway.start[1], doorway.end[1]),
-                color="#d1495b",
+                color=DOOR_COLOR,
                 linewidth=4,
                 solid_capstyle="round",
                 zorder=7,
             )
+    for doorway in doorways:
+        swing = door_swing_geometry(floor, doorway)
+        if not swing:
+            continue
+        hinge = swing["hinge"]
+        open_end = swing["open_end"]
+        ax.plot(
+            (hinge[0], open_end[0]), (hinge[1], open_end[1]),
+            color=DOOR_COLOR, linewidth=2.5, zorder=8,
+        )
+        arc_x, arc_y = zip(*swing["arc"])
+        ax.plot(
+            arc_x, arc_y, color=DOOR_COLOR, linewidth=1.5,
+            linestyle="--", zorder=8,
+        )
+        ax.scatter((hinge[0],), (hinge[1],), color=DOOR_COLOR, s=24, zorder=9)
     ax.set_xlabel("inches")
     ax.set_ylabel("inches")
     ax.set_title(
@@ -797,15 +1105,30 @@ def main(argv=None):
             layouts = optimize_layout(spec, orientations, args.offset_steps, args.alternatives)
             best = layouts[0]
             floor = best["floor"]
-            cells = floor.cells()
-            counts = balanced_counts(len(cells))
-            grid, attempts = solve_cells(cells, counts)
-            validate_cells(grid, cells, counts)
+            cells = best["cells"]
+            if spec.inventory:
+                grid, attempts, counts, material_usage = solve_inventory_colors(
+                    floor, cells, spec.inventory,
+                    excluded_areas=spec.excluded_areas,
+                )
+                validate_cells(grid, cells, counts, allow_white_clusters=True)
+            else:
+                counts = balanced_counts(len(cells))
+                grid, attempts = solve_cells(cells, counts)
+                validate_cells(grid, cells, counts)
+                material_usage = material_usage_by_color(
+                    grid, floor, excluded_areas=spec.excluded_areas
+                )
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
             raise SystemExit(f"error: {exc}") from exc
         placed = Counter(grid.values())
+        distribution = color_distribution_metrics(grid, floor)
+        outline_area = abs(_signed_area(floor.polygon))
+        excluded_area = sum(abs(_signed_area(area)) for area in spec.excluded_areas)
+        install_area = outline_area - excluded_area
         print(
-            f"Polygon floor: {abs(_signed_area(floor.polygon)):.2f} sq in, "
+            f"Tiled floor: {install_area:.2f} sq in "
+            f"({excluded_area:.2f} sq in excluded), "
             f"{len(cells)} tiles including perimeter cuts"
         )
         print(
@@ -831,12 +1154,48 @@ def main(argv=None):
         print(f"Solved in {attempts} attempt(s).")
         print("Placed:", ", ".join(f"{color}={placed[color]}" for color in POOL))
         print(
+            f"Color distribution: {distribution['same_color_adjacencies']} same-color "
+            f"adjacencies; largest white group {distribution['largest_white_component']}; "
+            f"balance penalty {distribution['spatial_balance_penalty']:.2f}"
+        )
+        print(
+            "Estimated source tiles: "
+            + ", ".join(f"{color}={material_usage[color]}" for color in POOL)
+        )
+        if spec.inventory:
+            shortage, purchase_packs, leftovers = inventory_purchase_plan(
+                material_usage, spec.inventory
+            )
+            print("Inventory:", ", ".join(f"{color}={spec.inventory[color]}" for color in POOL))
+            print("Shortfall:", ", ".join(f"{color}={shortage[color]}" for color in POOL))
+            print(
+                "Buy packs: "
+                + ", ".join(
+                    f"{color}={purchase_packs[color]}\u00d7{PACK_SIZES[color]}"
+                    for color in POOL if purchase_packs[color]
+                )
+                if any(purchase_packs.values()) else "Buy packs: none"
+            )
+            print(
+                "Projected left over after purchase: "
+                + ", ".join(f"{color}={leftovers[color]}" for color in POOL)
+            )
+        print(
             f"Material estimate: {best['tile_purchase_estimate']} tiles with approximate "
             f"offcut reuse ({best['potential_reuse_savings']} potential tile savings)."
         )
         if args.report:
             report = {
-                "floor_area_sq_in": abs(_signed_area(floor.polygon)),
+                "outline_area_sq_in": outline_area,
+                "excluded_area_sq_in": excluded_area,
+                "floor_area_sq_in": install_area,
+                "placed_pieces": dict(placed),
+                "color_distribution": distribution,
+                "estimated_source_tiles": material_usage,
+                "inventory": spec.inventory,
+                "shortfall": shortage if spec.inventory else None,
+                "purchase_packs": purchase_packs if spec.inventory else None,
+                "projected_leftovers": leftovers if spec.inventory else None,
                 "selected": {
                     key: value for key, value in best.items()
                     if key not in ("floor", "cells")
@@ -853,7 +1212,10 @@ def main(argv=None):
             Path(args.report).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
             print(f"Saved {args.report}")
         if not args.no_png:
-            save_polygon_png(grid, floor, args.output, spec.doorways, spec.concealed_areas)
+            save_polygon_png(
+                grid, floor, args.output, spec.doorways,
+                spec.concealed_areas, spec.excluded_areas,
+            )
         return 0
     total = sum(cnt for cnt, _, _ in POOL.values())
     cells = len(floor_cells())

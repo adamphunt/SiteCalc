@@ -236,6 +236,7 @@ class TestPolygonFloor(unittest.TestCase):
             "perimeter_joint": 0.25,
             "doorways": [{"name": "entry", "start": [0, 2], "end": [0, 8]}],
             "concealed_areas": [[[8, 0], [12, 0], [12, 3], [8, 3]]],
+            "excluded_areas": [[[0, 10], [5, 10], [5, 16], [0, 16]]],
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as stream:
             json.dump(document, stream)
@@ -247,6 +248,66 @@ class TestPolygonFloor(unittest.TestCase):
         self.assertEqual(spec.floor.perimeter_joint, 0.25)
         self.assertEqual(spec.doorways[0].name, "entry")
         self.assertEqual(len(spec.concealed_areas), 1)
+        self.assertEqual(len(spec.excluded_areas), 1)
+
+    def test_excluded_area_removes_only_fully_excluded_cells(self):
+        floor = hex_floor.PolygonFloor(self.outline, tile_width=3, grout_width=0.125)
+        excluded = (((0, 10), (5, 10), (5, 16), (0, 16)),)
+        result = hex_floor.evaluate_layout(floor, excluded_areas=excluded)
+        self.assertLess(len(result["cells"]), len(floor.cells()))
+        self.assertTrue(
+            all(hex_floor._tile_coverage(floor, cell, excluded) > 0 for cell in result["cells"])
+        )
+
+    def test_loads_color_inventory(self):
+        document = {
+            "polygon": self.outline,
+            "tile_width": 3,
+            "inventory": {"white": 50, "silver": 25, "ducados": 25, "aqua": 25},
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as stream:
+            json.dump(document, stream)
+            path = stream.name
+        try:
+            spec = hex_floor.load_layout_spec(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual(spec.inventory["white"], 50)
+
+    def test_inventory_purchase_plan_leaves_only_white(self):
+        usage = {"white": 57, "silver": 25, "ducados": 25, "aqua": 25}
+        inventory = {"white": 50, "silver": 25, "ducados": 25, "aqua": 25}
+        shortage, packs, leftovers = hex_floor.inventory_purchase_plan(usage, inventory)
+        self.assertEqual(shortage, {"white": 7, "silver": 0, "ducados": 0, "aqua": 0})
+        self.assertEqual(packs["white"], 1)
+        self.assertEqual(leftovers, {"white": 9, "silver": 0, "ducados": 0, "aqua": 0})
+
+    def test_spatial_penalty_prefers_distributed_colors(self):
+        floor = hex_floor.PolygonFloor(((0, 0), (20, 0), (20, 5), (0, 5)), 2)
+        cells = [(0, col) for col in range(8)]
+        concentrated = {
+            cell: "white" if index < 4 else "silver"
+            for index, cell in enumerate(cells)
+        }
+        distributed = {
+            cell: "white" if index % 2 == 0 else "silver"
+            for index, cell in enumerate(cells)
+        }
+        self.assertLess(
+            hex_floor.spatial_color_penalty(distributed, floor),
+            hex_floor.spatial_color_penalty(concentrated, floor),
+        )
+
+    def test_door_swings_inward_from_right_endpoint(self):
+        floor = hex_floor.PolygonFloor(((0, 0), (20, 0), (20, 10), (0, 10)), 2)
+        doorway = hex_floor.Doorway(
+            "entry", (4, 0), (10, 0), hinge="end", swing="inward"
+        )
+        geometry = hex_floor.door_swing_geometry(floor, doorway)
+        self.assertEqual(geometry["hinge"], (10, 0))
+        self.assertAlmostEqual(geometry["open_end"][0], 10)
+        self.assertAlmostEqual(geometry["open_end"][1], 6)
+        self.assertEqual(len(geometry["arc"]), 31)
 
 
 if __name__ == '__main__':

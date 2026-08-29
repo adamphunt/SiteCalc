@@ -1,0 +1,53 @@
+{
+  "units": "inches",
+  "polygon": [
+    [0, 0],
+    [83.5, 0],
+    [83.5, 68.5],
+    [80, 68.5],
+    [80, 103],
+    [0, 103]
+  ],
+  "tile_width": 8.5,
+  "grout_width": 0.0625,
+  "perimeter_joint": 0.25,
+  "inventory": {
+    "white": 50,
+    "silver": 25,
+    "ducados": 25,
+    "aqua": 25
+  },
+  "doorways": [
+    {
+      "name": "hall doorway",
+      "start": [44.25, 0],
+      "end": [76.25, 0],
+      "priority": 2,
+      "alignment": "either",
+      "hinge": "end",
+      "swing": "inward"
+    }
+  ],
+  "excluded_areas": [
+    [
+     [0, 0],
+     [0, 65.5],
+     [29.5, 65.5],
+     [29.5, 0]
+    ]
+  ],
+  "concealed_areas":[
+    [
+     [65.5, 32.5],
+     [65.5, 68.5],
+     [83.5, 68.5],
+     [83.5, 32.5]
+    ],
+    [
+     [80, 78],
+     [80, 92.5],
+     [57.75, 92.5],
+     [57.75, 78]
+    ]
+  ]
+}
